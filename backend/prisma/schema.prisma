@@ -1,0 +1,1154 @@
+  generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SuperAdmin {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("super_admins")
+}
+
+model InstitutionAdmin {
+  id               Int                  @id @default(autoincrement())
+  username         String               @unique
+  email            String               @unique
+  password         String?
+  googleId         String?              @unique
+  mobile           String?
+  institutionTitle String
+  institutionType  String
+  isApproved       Boolean              @default(false)
+  isActive         Boolean              @default(true)
+  universityId     Int?                 @unique
+  collegeId        Int?                 @unique
+  schoolId         Int?                 @unique
+  instituteId      Int?                 @unique
+  researchId       Int?                 @unique
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  emailVerified    Boolean              @default(false)
+  image            String?
+  mobileVerified   Boolean              @default(false)
+  college          College?             @relation(fields: [collegeId], references: [id])
+  institute        StandaloneInstitute? @relation(fields: [instituteId], references: [id])
+  research         ResearchInstitute?   @relation(fields: [researchId], references: [id])
+  school           School?              @relation(fields: [schoolId], references: [id])
+  university       University?          @relation(fields: [universityId], references: [id])
+
+  @@map("institution_admins")
+}
+
+model InstitutionAdminOtp {
+  id            Int       @id @default(autoincrement())
+  email         String
+  mobile        String
+  emailOtpHash  String
+  mobileOtpHash String
+  expiresAt     DateTime
+  verifiedAt    DateTime?
+  attempts      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([email, mobile])
+  @@index([email])
+  @@index([mobile])
+  @@map("institution_admin_otps")
+}
+
+model State {
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  slug         String       @unique
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  districts    District[]
+  universities University[]
+
+  @@map("states")
+}
+
+model District {
+  id                Int           @id @default(autoincrement())
+  name              String
+  slug              String
+  stateId           Int
+  isPopular         Boolean       @default(false)
+  metaTitle         String?
+  metaDescription   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  state             State         @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  subDistricts      SubDistrict[]
+  universities      University[]
+  colleges          College[]
+
+  @@unique([name, stateId])
+  @@map("districts")
+}
+
+model SubDistrict {
+  id           Int                   @id @default(autoincrement())
+  name         String
+  slug         String
+  districtId   Int
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  colleges     College[]
+  researches   ResearchInstitute[]
+  schools      School[]
+  institutes   StandaloneInstitute[]
+  district     District              @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  universities University[]
+
+  @@unique([name, districtId])
+  @@map("sub_districts")
+}
+
+model Category {
+  id         Int                   @id @default(autoincrement())
+  name       String                @unique
+  slug       String                @unique
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  colleges   College[]
+  courses    Course[]
+  exams      Exam[]
+  institutes StandaloneInstitute[]
+
+  @@map("categories")
+}
+
+model University {
+  id                  Int               @id @default(autoincrement())
+  name                String
+  slug                String            @unique
+  image               String?
+  description         String?
+  universityType      String?
+  yearOfEstablishment Int?
+  website             String?
+  locationType        String?
+  subDistrictId       Int?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  colleges            College[]
+  admin               InstitutionAdmin?
+  stateId             Int?
+  districtId          Int?
+
+  state          State?                     @relation(fields: [stateId], references: [id])
+  district       District?                  @relation(fields: [districtId], references: [id])
+  subDistrict    SubDistrict?               @relation(fields: [subDistrictId], references: [id])
+  admissionGuide UniversityAdmissionGuide[]
+  admissions     UniversityAdmission[]
+  comments       UniversityComment[]
+  courses        UniversityCourse[]
+  faqs           UniversityFAQ[]
+  gallery        UniversityGallery[]
+  hostels        UniversityHostel[]
+  placements     UniversityPlacement[]
+  rankings       UniversityRanking[]
+  ratings        UniversityRating[]
+
+  @@map("universities")
+}
+
+model College {
+  id                  Int                     @id @default(autoincrement())
+  name                String
+  slug                String                  @unique
+  image               String?
+  description         String?
+  collegeType         String?
+  address             String?
+  management          String? 
+  locationType        String?
+  website             String?
+  yearOfEstablishment Int?
+  subDistrictId       Int
+  categoryId          Int?
+  universityId        Int?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  admissionGuide      CollegeAdmissionGuide[]
+  admissions          CollegeAdmission[]
+  comments            CollegeComment[]
+  courses             CollegeCourse[]
+  exams               CollegeExam[]
+  faqs                CollegeFAQ[]
+  gallery             CollegeGallery[]
+  hostels             CollegeHostel[]
+  placements          CollegePlacement[]
+  rankings            CollegeRanking[]
+  ratings             CollegeRating[]
+  category            Category?               @relation(fields: [categoryId], references: [id])
+  subDistrict         SubDistrict             @relation(fields: [subDistrictId], references: [id])
+  university          University?             @relation(fields: [universityId], references: [id])
+  admin               InstitutionAdmin?
+
+  @@map("colleges")
+}
+
+model StandaloneInstitute {
+  id                  Int                       @id @default(autoincrement())
+  name                String
+  slug                String                    @unique
+  image               String?
+  description         String?
+  instituteType       String?
+  management          String?
+  locationType        String?
+  website             String?
+  yearOfEstablishment Int?
+  subDistrictId       Int
+  categoryId          Int?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  admissionGuide      InstituteAdmissionGuide[]
+  admissions          InstituteAdmission[]
+  comments            InstituteComment[]
+  courses             InstituteCourse[]
+  faqs                InstituteFAQ[]
+  gallery             InstituteGallery[]
+  hostels             InstituteHostel[]
+  placements          InstitutePlacement[]
+  ratings             InstituteRating[]
+  admin               InstitutionAdmin?
+  category            Category?                 @relation(fields: [categoryId], references: [id])
+  subDistrict         SubDistrict               @relation(fields: [subDistrictId], references: [id])
+
+  @@map("standalone_institutes")
+}
+
+model ResearchInstitute {
+  id                  Int                      @id @default(autoincrement())
+  name                String
+  slug                String                   @unique
+  image               String?
+  description         String?
+  instituteType       String?
+  management          String?
+  locationType        String?
+  website             String?
+  yearOfEstablishment Int?
+  subDistrictId       Int
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  admin               InstitutionAdmin?
+  admissionGuide      ResearchAdmissionGuide[]
+  admissions          ResearchAdmission[]
+  comments            ResearchComment[]
+  courses             ResearchCourse[]
+  faqs                ResearchFAQ[]
+  gallery             ResearchGallery[]
+  hostels             ResearchHostel[]
+  subDistrict         SubDistrict              @relation(fields: [subDistrictId], references: [id])
+  placements          ResearchPlacement[]
+  ratings             ResearchRating[]
+
+  @@map("research_institutes")
+}
+
+model School {
+  id                  Int                     @id @default(autoincrement())
+  name                String
+  slug                String                  @unique
+  image               String?
+  board               String?
+  type                String?
+  classesFrom         Int?
+  classesTo           Int?
+  address             String?
+  website             String?
+  description         String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  subDistrictId       Int
+  yearOfEstablishment Int?
+  admin               InstitutionAdmin?
+  admissionDetails    SchoolAdmissionDetail[]
+  admissions          SchoolAdmission[]
+  comments            SchoolComment[]
+  faqs                SchoolFAQ[]
+  fees                SchoolFee[]
+  gallery             SchoolGallery[]
+  ratings             SchoolRating[]
+  subDistrict         SubDistrict             @relation(fields: [subDistrictId], references: [id])
+
+  @@map("schools")
+}
+
+model Course {
+  id           Int                @id @default(autoincrement())
+  name         String
+  slug         String             @unique
+  shortName    String?
+  duration     String?
+  level        String?
+  description  String?
+  categoryId   Int
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  colleges     CollegeCourse[]
+  collegeExams CollegeExam[]
+  category     Category           @relation(fields: [categoryId], references: [id])
+  institutes   InstituteCourse[]
+  researches   ResearchCourse[]
+  universities UniversityCourse[]
+
+  @@map("courses")
+}
+
+model Exam {
+  id              Int               @id @default(autoincrement())
+  name            String
+  slug            String            @unique
+  shortName       String?
+  image           String?
+  examType        String?
+  level           String?
+  conductedBy     String?
+  applyLink       String?
+  officialWebsite String?
+  syllabusLink    String?
+  description     String?
+  categoryId      Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  stream          String?
+  collegeExams    CollegeExam[]
+  dates           ExamDate[]
+  eligibility     ExamEligibility[]
+  fees            ExamFee[]
+  pattern         ExamPattern[]
+  category        Category          @relation(fields: [categoryId], references: [id])
+
+  @@map("exams")
+}
+
+model SchoolAdmission {
+  id             Int       @id @default(autoincrement())
+  admissionClass String?
+  examName       String?
+  eligibility    String?
+  ageLimit       String?
+  formStartDate  DateTime?
+  formEndDate    DateTime?
+  examDate       DateTime?
+  schoolId       Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  school         School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_admissions")
+}
+
+model SchoolFee {
+  id           Int      @id @default(autoincrement())
+  className    String
+  admissionFee Float?
+  tuitionFee   Float?
+  annualFee    Float?
+  hostelFee    Float?
+  transportFee Float?
+  feesType     String?
+  schoolId     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_fees")
+}
+
+model ExamFee {
+  id             Int      @id @default(autoincrement())
+  categoryName   String
+  examId         Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  applicationFee Float
+  correctionFee  Float?   @default(0)
+  lateFee        Float?   @default(0)
+  notes          String?
+  totalFee       Float
+  year           Int
+  exam           Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, categoryName, year])
+  @@map("exam_fees")
+}
+
+model ExamDate {
+  id             Int       @id @default(autoincrement())
+  session        String?
+  formStartDate  DateTime?
+  formEndDate    DateTime?
+  correctionDate DateTime?
+  admitCardDate  DateTime?
+  examDate       DateTime?
+  resultDate     DateTime?
+  examId         Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  exam           Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("exam_dates")
+}
+
+model ExamEligibility {
+  id            Int      @id @default(autoincrement())
+  qualification String?
+  minimumMarks  String?
+  ageLimit      String?
+  stream        String?
+  examId        Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("exam_eligibility")
+}
+
+model ExamPattern {
+  id              Int      @id @default(autoincrement())
+  mode            String?
+  duration        String
+  totalQuestions  Int
+  totalMarks      Int
+  negativeMarking Boolean  @default(false)
+  examId          Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  isActive        Boolean  @default(true)
+  language        String?
+  sections        Json?
+  year            Int
+  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, year])
+  @@map("exam_pattern")
+}
+
+model User {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  email              String              @unique
+  googleId           String?             @unique
+  profileImage       String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  collegeComments    CollegeComment[]
+  collegeRatings     CollegeRating[]
+  contactRequests    ContactRequest[]
+  instituteComments  InstituteComment[]
+  instituteRatings   InstituteRating[]
+  researchComments   ResearchComment[]
+  researchRatings    ResearchRating[]
+  schoolComments     SchoolComment[]
+  schoolRatings      SchoolRating[]
+  searchHistory      SearchHistory[]
+  universityComments UniversityComment[]
+  universityRatings  UniversityRating[]
+
+  @@map("users")
+}
+
+model SearchHistory {
+  id        Int      @id @default(autoincrement())
+  keyword   String
+  itemType  String?
+  userId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("search_history")
+}
+
+model ContactRequest {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  status    String   @default("pending")
+  userId    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("contact_requests")
+}
+
+model UniversityComment {
+  id           Int        @id @default(autoincrement())
+  message      String
+  universityId Int
+  userId       Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("university_comments")
+}
+
+model CollegeComment {
+  id        Int      @id @default(autoincrement())
+  message   String
+  collegeId Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("college_comments")
+}
+
+model SchoolComment {
+  id        Int      @id @default(autoincrement())
+  message   String
+  schoolId  Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("school_comments")
+}
+
+model InstituteComment {
+  id          Int                 @id @default(autoincrement())
+  message     String
+  instituteId Int
+  userId      Int
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("institute_comments")
+}
+
+model ResearchComment {
+  id         Int               @id @default(autoincrement())
+  message    String
+  researchId Int
+  userId     Int
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  research   ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("research_comments")
+}
+
+model UniversityRating {
+  id           Int        @id @default(autoincrement())
+  rating       Int
+  universityId Int
+  userId       Int
+  createdAt    DateTime   @default(now())
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("university_ratings")
+}
+
+model CollegeRating {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  collegeId Int
+  userId    Int
+  createdAt DateTime @default(now())
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("college_ratings")
+}
+
+model SchoolRating {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  schoolId  Int
+  userId    Int
+  createdAt DateTime @default(now())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("school_ratings")
+}
+
+model InstituteRating {
+  id          Int                 @id @default(autoincrement())
+  rating      Int
+  instituteId Int
+  userId      Int
+  createdAt   DateTime            @default(now())
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("institute_ratings")
+}
+
+model ResearchRating {
+  id         Int               @id @default(autoincrement())
+  rating     Int
+  researchId Int
+  userId     Int
+  createdAt  DateTime          @default(now())
+  research   ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("research_ratings")
+}
+
+model UniversityFAQ {
+  id           Int        @id @default(autoincrement())
+  question     String
+  answer       String
+  universityId Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("university_faqs")
+}
+
+model CollegeFAQ {
+  id        Int      @id @default(autoincrement())
+  question  String
+  answer    String
+  collegeId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("college_faqs")
+}
+
+model SchoolFAQ {
+  id        Int      @id @default(autoincrement())
+  question  String
+  answer    String
+  schoolId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_faqs")
+}
+
+model InstituteFAQ {
+  id          Int                 @id @default(autoincrement())
+  question    String
+  answer      String
+  instituteId Int
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@map("institute_faqs")
+}
+
+model ResearchFAQ {
+  id         Int               @id @default(autoincrement())
+  question   String
+  answer     String
+  researchId Int
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  research   ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@map("research_faqs")
+}
+
+model UniversityHostel {
+  id           Int        @id @default(autoincrement())
+  hostelType   String?
+  gender       String?
+  available    Boolean    @default(true)
+  capacity     Int?
+  fee          Float?
+  facilities   String?
+  image        String?
+  universityId Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("university_hostels")
+}
+
+model CollegeHostel {
+  id         Int      @id @default(autoincrement())
+  hostelType String?
+  gender     String?
+  available  Boolean  @default(true)
+  capacity   Int?
+  fee        Float?
+  facilities String?
+  image      String?
+  collegeId  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  college    College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("college_hostels")
+}
+
+model InstituteHostel {
+  id          Int                 @id @default(autoincrement())
+  hostelType  String?
+  gender      String?
+  available   Boolean             @default(true)
+  capacity    Int?
+  fee         Float?
+  facilities  String?
+  image       String?
+  instituteId Int
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@map("institute_hostels")
+}
+
+model ResearchHostel {
+  id         Int               @id @default(autoincrement())
+  hostelType String?
+  gender     String?
+  available  Boolean           @default(true)
+  capacity   Int?
+  fee        Float?
+  facilities String?
+  image      String?
+  researchId Int
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  research   ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@map("research_hostels")
+}
+
+model UniversityAdmissionGuide {
+  id           Int        @id @default(autoincrement())
+  title        String
+  slug         String     @unique
+  description  String?
+  steps        String
+  image        String?
+  universityId Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("university_admission_guides")
+}
+
+model CollegeAdmissionGuide {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  description String?
+  steps       String
+  image       String?
+  collegeId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("college_admission_guides")
+}
+
+model InstituteAdmissionGuide {
+  id          Int                 @id @default(autoincrement())
+  title       String
+  slug        String              @unique
+  description String?
+  steps       String
+  image       String?
+  instituteId Int
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@map("institute_admission_guides")
+}
+
+model ResearchAdmissionGuide {
+  id          Int               @id @default(autoincrement())
+  title       String
+  slug        String            @unique
+  description String?
+  steps       String
+  image       String?
+  researchId  Int
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  research    ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@map("research_admission_guides")
+}
+
+model UniversityCourse {
+  id           Int        @id @default(autoincrement())
+  fees         Float?
+  seats        Int?
+  duration     String?
+  mode         String?
+  isActive     Boolean    @default(true)
+  universityId Int
+  courseId     Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  course       Course     @relation(fields: [courseId], references: [id])
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, courseId])
+  @@map("university_courses")
+}
+
+model CollegeCourse {
+  id        Int      @id @default(autoincrement())
+  fees      Float?
+  seats     Int?
+  duration  String?
+  mode      String?
+  isActive  Boolean  @default(true)
+  collegeId Int
+  courseId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([collegeId, courseId])
+  @@map("college_courses")
+}
+
+model CollegeExam {
+  id        Int      @id @default(autoincrement())
+  collegeId Int
+  courseId  Int
+  examId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id])
+  exam      Exam     @relation(fields: [examId], references: [id])
+
+  @@unique([collegeId, courseId, examId])
+  @@map("college_exams")
+}
+
+model InstituteCourse {
+  id          Int                 @id @default(autoincrement())
+  fees        Float?
+  seats       Int?
+  duration    String?
+  mode        String?
+  isActive    Boolean             @default(true)
+  instituteId Int
+  courseId    Int
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  course      Course              @relation(fields: [courseId], references: [id])
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@unique([instituteId, courseId])
+  @@map("institute_courses")
+}
+
+model ResearchCourse {
+  id         Int               @id @default(autoincrement())
+  fees       Float?
+  seats      Int?
+  duration   String?
+  mode       String?
+  isActive   Boolean           @default(true)
+  researchId Int
+  courseId   Int
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  course     Course            @relation(fields: [courseId], references: [id])
+  research   ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@unique([researchId, courseId])
+  @@map("research_courses")
+}
+
+model UniversityPlacement {
+  id               Int        @id @default(autoincrement())
+  year             Int
+  totalStudents    Int?
+  placedStudents   Int?
+  placementPercent Float?
+  avgPackage       Float?
+  highestPackage   Float?
+  topRecruiters    String?
+  description      String?
+  universityId     Int
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  university       University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, year])
+  @@map("university_placements")
+}
+
+model CollegePlacement {
+  id               Int      @id @default(autoincrement())
+  year             Int
+  totalStudents    Int?
+  placedStudents   Int?
+  placementPercent Float?
+  avgPackage       Float?
+  highestPackage   Float?
+  topRecruiters    String?
+  description      String?
+  collegeId        Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  college          College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([collegeId, year])
+  @@map("college_placements")
+}
+
+model InstitutePlacement {
+  id               Int                 @id @default(autoincrement())
+  year             Int
+  totalStudents    Int?
+  placedStudents   Int?
+  placementPercent Float?
+  avgPackage       Float?
+  highestPackage   Float?
+  topRecruiters    String?
+  description      String?
+  instituteId      Int
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  institute        StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@unique([instituteId, year])
+  @@map("institute_placements")
+}
+
+model ResearchPlacement {
+  id               Int               @id @default(autoincrement())
+  year             Int
+  totalStudents    Int?
+  placedStudents   Int?
+  placementPercent Float?
+  avgPackage       Float?
+  highestPackage   Float?
+  topRecruiters    String?
+  description      String?
+  researchId       Int
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  research         ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@unique([researchId, year])
+  @@map("research_placements")
+}
+
+model UniversityAdmission {
+  id            Int        @id @default(autoincrement())
+  courseName    String?
+  admissionType String?
+  eligibility   String?
+  formStartDate DateTime?
+  formEndDate   DateTime?
+  admissionDate DateTime?
+  fees          Float?
+  seats         Int?
+  description   String?
+  universityId  Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  university    University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("university_admissions")
+}
+
+model CollegeAdmission {
+  id            Int       @id @default(autoincrement())
+  courseName    String?
+  admissionType String?
+  eligibility   String?
+  formStartDate DateTime?
+  formEndDate   DateTime?
+  admissionDate DateTime?
+  fees          Float?
+  seats         Int?
+  description   String?
+  collegeId     Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  college       College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("college_admissions")
+}
+
+model InstituteAdmission {
+  id            Int                 @id @default(autoincrement())
+  courseName    String?
+  admissionType String?
+  eligibility   String?
+  formStartDate DateTime?
+  formEndDate   DateTime?
+  admissionDate DateTime?
+  fees          Float?
+  seats         Int?
+  description   String?
+  instituteId   Int
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  institute     StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@map("institute_admissions")
+}
+
+model SchoolAdmissionDetail {
+  id            Int       @id @default(autoincrement())
+  courseName    String?
+  admissionType String?
+  eligibility   String?
+  formStartDate DateTime?
+  formEndDate   DateTime?
+  admissionDate DateTime?
+  fees          Float?
+  seats         Int?
+  description   String?
+  schoolId      Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  school        School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_admission_details")
+}
+
+model ResearchAdmission {
+  id            Int               @id @default(autoincrement())
+  courseName    String?
+  admissionType String?
+  eligibility   String?
+  formStartDate DateTime?
+  formEndDate   DateTime?
+  admissionDate DateTime?
+  fees          Float?
+  seats         Int?
+  description   String?
+  researchId    Int
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  research      ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@map("research_admissions")
+}
+
+model UniversityGallery {
+  id           Int        @id @default(autoincrement())
+  imageUrl     String
+  caption      String?
+  type         String?
+  universityId Int
+  createdAt    DateTime   @default(now())
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@map("university_gallery")
+}
+
+model CollegeGallery {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  caption   String?
+  type      String?
+  collegeId Int
+  createdAt DateTime @default(now())
+  college   College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("college_gallery")
+}
+
+model InstituteGallery {
+  id          Int                 @id @default(autoincrement())
+  imageUrl    String
+  caption     String?
+  type        String?
+  instituteId Int
+  createdAt   DateTime            @default(now())
+  institute   StandaloneInstitute @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+
+  @@map("institute_gallery")
+}
+
+model SchoolGallery {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  caption   String?
+  type      String?
+  schoolId  Int
+  createdAt DateTime @default(now())
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_gallery")
+}
+
+model ResearchGallery {
+  id         Int               @id @default(autoincrement())
+  imageUrl   String
+  caption    String?
+  type       String?
+  researchId Int
+  createdAt  DateTime          @default(now())
+  research   ResearchInstitute @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@map("research_gallery")
+}
+
+model UniversityRanking {
+  id           Int        @id @default(autoincrement())
+  year         Int
+  rankingBody  String
+  rank         Int
+  score        Float?
+  description  String?
+  universityId Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, year, rankingBody])
+  @@map("university_rankings")
+}
+
+model CollegeRanking {
+  id          Int      @id @default(autoincrement())
+  year        Int
+  rankingBody String
+  rank        Int
+  score       Float?
+  description String?
+  collegeId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  college     College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([collegeId, year, rankingBody])
+  @@map("college_rankings")
+}
